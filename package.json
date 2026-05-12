@@ -1,0 +1,15 @@
+{
+  "name": "money-pilot",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace @money-pilot/web run dev",
+    "dev:api": "npm --workspace @money-pilot/api run dev",
+    "build:web": "npm --workspace @money-pilot/web run build",
+    "build:api": "npm --workspace @money-pilot/api run build"
+  }
+}
+

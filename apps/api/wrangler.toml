@@ -1,0 +1,12 @@
+name = "money-pilot-api"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-05-12"
+
+[build]
+command = "cargo install -q worker-build && worker-build --release"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "money_pilot"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "../../db/migrations"
