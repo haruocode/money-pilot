@@ -53,7 +53,7 @@ export const createMonthlyExpenseInputSchema = z.object({
 
 export const createSnapshotInputSchema = z.object({
   snapshotDate: z.string().min(1),
-  currency: z.string().default("JPY"),
+  currency: z.string().optional().default("JPY"),
   note: z.string().trim().min(1).nullable().optional(),
   accounts: z.array(createAccountInputSchema),
   monthlyExpenses: z.array(createMonthlyExpenseInputSchema),
@@ -87,4 +87,3 @@ export type CreateSnapshotInput = z.infer<typeof createSnapshotInputSchema>;
 export type DashboardMetrics = z.infer<typeof dashboardMetricsSchema>;
 export type DashboardResponse = z.infer<typeof dashboardResponseSchema>;
 export type SnapshotsResponse = z.infer<typeof snapshotsResponseSchema>;
-

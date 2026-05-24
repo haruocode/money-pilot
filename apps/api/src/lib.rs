@@ -2,6 +2,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use worker::*;
+use worker::wasm_bindgen::JsValue;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -88,7 +89,7 @@ struct CreateMonthlyExpenseInput {
 #[serde(rename_all = "camelCase")]
 struct CreateSnapshotInput {
     snapshot_date: String,
-    currency: String,
+    currency: Option<String>,
     note: Option<String>,
     accounts: Vec<CreateAccountInput>,
     monthly_expenses: Vec<CreateMonthlyExpenseInput>,
@@ -313,6 +314,7 @@ async fn load_snapshot_by_id(db: &D1Database, snapshot_id: &str) -> Result<Snaps
 async fn insert_snapshot(db: &D1Database, input: CreateSnapshotInput) -> Result<Snapshot> {
     let snapshot_id = create_id("snapshot");
     let created_at = now_iso();
+    let currency = input.currency.unwrap_or_else(|| "JPY".to_string());
 
     db.prepare(
         "INSERT INTO snapshots (id, snapshot_date, currency, note, created_at)
@@ -321,7 +323,7 @@ async fn insert_snapshot(db: &D1Database, input: CreateSnapshotInput) -> Result<
     .bind(&[
         snapshot_id.clone().into(),
         input.snapshot_date.clone().into(),
-        input.currency.clone().into(),
+        currency.into(),
         input.note.clone().unwrap_or_default().into(),
         created_at.clone().into(),
     ])
@@ -342,9 +344,9 @@ async fn insert_snapshot(db: &D1Database, input: CreateSnapshotInput) -> Result<
             snapshot_id.clone().into(),
             account.name.clone().into(),
             account.account_type.clone().into(),
-            account.balance.into(),
-            account.credit_limit.unwrap_or_default().into(),
-            if account.is_debt { 1 } else { 0 }.into(),
+            js_number(account.balance),
+            js_optional_number(account.credit_limit),
+            js_number(if account.is_debt { 1 } else { 0 }),
             created_at.clone().into(),
         ])
         .map_err(d1_error)?
@@ -364,7 +366,7 @@ async fn insert_snapshot(db: &D1Database, input: CreateSnapshotInput) -> Result<
             expense_id.into(),
             snapshot_id.clone().into(),
             expense.category.clone().into(),
-            expense.amount.into(),
+            js_number(expense.amount),
             created_at.clone().into(),
         ])
         .map_err(d1_error)?
@@ -442,4 +444,12 @@ fn create_id(prefix: &str) -> String {
 
 fn now_iso() -> String {
     Utc::now().to_rfc3339()
+}
+
+fn js_number(value: i64) -> JsValue {
+    JsValue::from_f64(value as f64)
+}
+
+fn js_optional_number(value: Option<i64>) -> JsValue {
+    value.map(js_number).unwrap_or(JsValue::NULL)
 }

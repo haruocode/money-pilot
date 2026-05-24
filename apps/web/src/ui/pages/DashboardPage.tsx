@@ -1,22 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchDashboard } from "../../lib/api";
-import { formatMoney, formatPercent } from "../../lib/format";
-import { useUiStore } from "../../store/ui-store";
+import { formatAccountType, formatMoney, formatPercent } from "../../lib/format";
 import { DataTable } from "../components/DataTable";
 
 export function DashboardPage() {
-  const { currency, setCurrency } = useUiStore();
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard"],
     queryFn: fetchDashboard,
   });
 
   if (isLoading) {
-    return <section className="panel">Loading dashboard...</section>;
+    return <section className="panel">ダッシュボードを読み込み中...</section>;
   }
 
   if (error) {
-    return <section className="panel">Failed to load dashboard.</section>;
+    return <section className="panel">ダッシュボードの読み込みに失敗しました。</section>;
   }
 
   const latest = data?.latestSnapshot;
@@ -26,34 +24,26 @@ export function DashboardPage() {
     <section className="page">
       <div className="page-header">
         <div>
-          <p className="eyebrow">Overview</p>
-          <h2>Dashboard</h2>
+          <p className="eyebrow">概要</p>
+          <h2>ダッシュボード</h2>
         </div>
-
-        <label className="field-inline">
-          <span>Currency</span>
-          <input
-            value={currency}
-            onChange={(event) => setCurrency(event.target.value.toUpperCase())}
-          />
-        </label>
       </div>
 
       <div className="metric-grid">
         <article className="metric-card">
-          <span>Net worth</span>
-          <strong>{formatMoney(metrics?.netWorth ?? 0, currency)}</strong>
+          <span>純資産</span>
+          <strong>{formatMoney(metrics?.netWorth ?? 0)}</strong>
         </article>
         <article className="metric-card">
-          <span>Total assets</span>
-          <strong>{formatMoney(metrics?.totalAssets ?? 0, currency)}</strong>
+          <span>総資産</span>
+          <strong>{formatMoney(metrics?.totalAssets ?? 0)}</strong>
         </article>
         <article className="metric-card">
-          <span>Total debt</span>
-          <strong>{formatMoney(metrics?.totalDebt ?? 0, currency)}</strong>
+          <span>総負債</span>
+          <strong>{formatMoney(metrics?.totalDebt ?? 0)}</strong>
         </article>
         <article className="metric-card">
-          <span>Credit utilization</span>
+          <span>クレジット利用率</span>
           <strong>{formatPercent(metrics?.creditUtilizationRatio ?? 0)}</strong>
         </article>
       </div>
@@ -61,45 +51,44 @@ export function DashboardPage() {
       <div className="panel-stack">
         <section className="panel">
           <div className="section-heading">
-            <h3>Latest snapshot</h3>
-            <span>{latest?.snapshotDate ?? "No data"}</span>
+            <h3>最新スナップショット</h3>
+            <span>{latest?.snapshotDate ?? "データなし"}</span>
           </div>
 
           {latest ? (
             <DataTable
-              columns={["Account", "Type", "Balance", "Debt"]}
+              columns={["口座名", "種別", "残高", "負債"]}
               rows={latest.accounts.map((account) => [
                 account.name,
-                account.accountType,
-                formatMoney(account.balance, currency),
-                account.isDebt ? "Yes" : "No",
+                formatAccountType(account.accountType),
+                formatMoney(account.balance),
+                account.isDebt ? "はい" : "いいえ",
               ])}
             />
           ) : (
-            <p className="muted">Create the first snapshot to populate the dashboard.</p>
+            <p className="muted">最初のスナップショットを作成すると、ここに内容が表示されます。</p>
           )}
         </section>
 
         <section className="panel">
           <div className="section-heading">
-            <h3>Monthly fixed expenses</h3>
-            <span>{formatMoney(metrics?.monthlyFixedExpenses ?? 0, currency)}</span>
+            <h3>毎月の固定支出</h3>
+            <span>{formatMoney(metrics?.monthlyFixedExpenses ?? 0)}</span>
           </div>
 
           {latest ? (
             <DataTable
-              columns={["Category", "Amount"]}
+              columns={["項目", "金額"]}
               rows={latest.monthlyExpenses.map((expense) => [
                 expense.category,
-                formatMoney(expense.amount, currency),
+                formatMoney(expense.amount),
               ])}
             />
           ) : (
-            <p className="muted">No expense rows yet.</p>
+            <p className="muted">支出データはまだありません。</p>
           )}
         </section>
       </div>
     </section>
   );
 }
-

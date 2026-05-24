@@ -1,8 +1,14 @@
 :root {
-  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family:
+    "Avenir Next",
+    "Hiragino Sans",
+    "Yu Gothic Medium",
+    "Yu Gothic",
+    "Noto Sans JP",
+    sans-serif;
   color: #172033;
   background: #eef2f7;
-  line-height: 1.4;
+  line-height: 1.5;
   font-weight: 400;
 }
 
@@ -20,7 +26,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -44,8 +51,26 @@ input {
 .page h2,
 .panel h3 {
   margin: 0;
-  font-family: "IBM Plex Serif", Georgia, serif;
-  font-weight: 600;
+  font-family:
+    "Hiragino Mincho ProN",
+    "Yu Mincho",
+    "Times New Roman",
+    serif;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+
+.app-title {
+  font-size: 32px;
+}
+
+.page h2 {
+  font-size: 30px;
+}
+
+.panel h3 {
+  font-size: 22px;
 }
 
 .nav {
@@ -59,6 +84,8 @@ input {
   border: 1px solid transparent;
   color: inherit;
   text-decoration: none;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .nav-link-active {
@@ -87,8 +114,8 @@ input {
 .eyebrow {
   margin: 0 0 6px;
   color: #64728a;
-  font-size: 12px;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -124,7 +151,8 @@ input {
 }
 
 .metric-card strong {
-  font-size: 24px;
+  font-size: 28px;
+  letter-spacing: -0.03em;
 }
 
 .field-inline {
@@ -148,9 +176,95 @@ input {
   cursor: pointer;
 }
 
+.button-secondary {
+  border-color: #c2cee1;
+  background: #fff;
+  color: #172033;
+}
+
 .button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.status-message {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.status-message-success {
+  color: #216e39;
+}
+
+.status-message-error {
+  color: #b42318;
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field span {
+  font-size: 14px;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #c2cee1;
+  background: #fff;
+}
+
+.field-full {
+  grid-column: 1 / -1;
+}
+
+.field-checkbox {
+  flex-direction: row;
+  align-items: center;
+  padding-top: 30px;
+}
+
+.field-checkbox input {
+  width: auto;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.entry-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #dde4ef;
+  background: #f9fbfe;
+}
+
+.entry-actions,
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .table-wrap {
@@ -160,7 +274,7 @@ input {
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .data-table th,
@@ -189,6 +303,10 @@ input {
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -206,4 +324,3 @@ input {
     grid-template-columns: 1fr;
   }
 }
-

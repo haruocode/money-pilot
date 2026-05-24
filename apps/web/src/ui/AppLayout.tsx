@@ -1,9 +1,9 @@
 import { NavLink, Outlet } from "react-router-dom";
 
 const links = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/snapshots", label: "Snapshots" },
-  { to: "/expenses", label: "Expenses" },
+  { to: "/dashboard", label: "ダッシュボード" },
+  { to: "/snapshots", label: "スナップショット" },
+  { to: "/expenses", label: "支出" },
 ];
 
 export function AppLayout() {
@@ -12,7 +12,7 @@ export function AppLayout() {
       <aside className="sidebar">
         <div>
           <p className="eyebrow">Money Pilot</p>
-          <h1 className="app-title">Personal finance cockpit</h1>
+          <h1 className="app-title">個人資産ダッシュボード</h1>
         </div>
 
         <nav className="nav">
@@ -36,4 +36,3 @@ export function AppLayout() {
     </div>
   );
 }
-
