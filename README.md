@@ -117,42 +117,32 @@ npm run deploy:api
 
 デプロイ後、`https://<worker-name>.<subdomain>.workers.dev` のような URL が払い出されます。
 
-### 4. Web を本番デプロイ
+### 4. 環境変数ファイルを作成
 
-Cloudflare Pages 側では以下を設定します。
-
-- Build command: `npm run build:web`
-- Build output directory: `apps/web/dist`
-
-CLI から直接デプロイする場合は、API URL を埋め込んでから Pages へアップロードします。
+`apps/web/.env.production.local` を作成し、デプロイ先の API URL を記載します。
+このファイルは `.gitignore` 対象のため、リポジトリには含まれません。
 
 ```bash
-VITE_API_BASE_URL=https://money-pilot-api.takaron0930.workers.dev npm run build:web
-npx wrangler pages deploy apps/web/dist --project-name money-pilot
-```
-
-### 5. `VITE_API_BASE_URL` を設定
-
-Web フロントエンドは `VITE_API_BASE_URL` が設定されていればその URL を API のベース URL として使います。未設定の場合は `/api` を使うため、ローカル開発では従来通り Vite の proxy が動きます。
-
-Cloudflare Pages の本番環境変数に、Worker の URL を設定してください。
-
-```text
+# apps/web/.env.production.local
 VITE_API_BASE_URL=https://<worker-name>.<subdomain>.workers.dev
 ```
 
-この設定により、Web は本番では `https://...workers.dev/api/...` を参照します。
+### 5. Web を本番デプロイ
 
-### 6. CORS が必要なら API 側で許可
+```bash
+npm run deploy:web
+```
 
-Web を Pages ドメイン、API を `workers.dev` ドメインで別配信する場合、API 側で CORS 設定が必要です。このリポジトリでは `ALLOWED_ORIGINS` に指定した Origin だけを許可します。
+ビルド時に `apps/web/.env.production.local` が自動で読み込まれ、API URL がバンドルに埋め込まれます。
+
+### 6. CORS 設定
+
+Web（Pages）と API（Workers）が別ドメインになるため、`apps/api/wrangler.toml` の `ALLOWED_ORIGINS` に Pages のドメインを追加してください。
 
 ```toml
 [vars]
-ALLOWED_ORIGINS = "https://money-pilot-bx3.pages.dev"
+ALLOWED_ORIGINS = "https://<your-pages-domain>.pages.dev"
 ```
-
-同一ドメイン配下で `/api` を Worker にルーティングする構成にする場合は、`VITE_API_BASE_URL` を未設定のまま使えます。
 
 ## ディレクトリ構成
 
