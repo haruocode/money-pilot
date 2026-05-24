@@ -2,9 +2,8 @@ import { NavLink, Outlet } from "react-router-dom";
 
 const links = [
   { to: "/dashboard", label: "ダッシュボード" },
+  { to: "/checkin", label: "残高入力" },
   { to: "/accounts", label: "口座管理" },
-  { to: "/snapshots", label: "スナップショット" },
-  { to: "/expenses", label: "支出" },
 ];
 
 export function AppLayout() {

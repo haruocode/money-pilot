@@ -15,125 +15,15 @@ fn is_debt_from_category(category: &str) -> bool {
     matches!(category, "CreditCard" | "CardLoan" | "ConsumerLoan")
 }
 
+// --- CORS ---
+
 enum CorsOrigin {
     NotBrowser,
     Allowed(String),
     Denied,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct SnapshotRecord {
-    id: String,
-    snapshot_date: String,
-    currency: String,
-    note: Option<String>,
-    created_at: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct AccountRecord {
-    id: String,
-    snapshot_id: String,
-    name: String,
-    account_type: String,
-    balance: i64,
-    credit_limit: Option<i64>,
-    is_debt: i64,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct MonthlyExpenseRecord {
-    id: String,
-    snapshot_id: String,
-    category: String,
-    amount: i64,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Account {
-    id: String,
-    snapshot_id: String,
-    name: String,
-    account_type: String,
-    balance: i64,
-    credit_limit: Option<i64>,
-    is_debt: bool,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct MonthlyExpense {
-    id: String,
-    snapshot_id: String,
-    category: String,
-    amount: i64,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Snapshot {
-    id: String,
-    snapshot_date: String,
-    currency: String,
-    note: Option<String>,
-    created_at: String,
-    accounts: Vec<Account>,
-    monthly_expenses: Vec<MonthlyExpense>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct CreateAccountInput {
-    name: String,
-    account_type: String,
-    balance: i64,
-    credit_limit: Option<i64>,
-    is_debt: bool,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct CreateMonthlyExpenseInput {
-    category: String,
-    amount: i64,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct CreateSnapshotInput {
-    snapshot_date: String,
-    currency: Option<String>,
-    note: Option<String>,
-    accounts: Vec<CreateAccountInput>,
-    monthly_expenses: Vec<CreateMonthlyExpenseInput>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct DashboardMetrics {
-    total_assets: i64,
-    total_debt: i64,
-    net_worth: i64,
-    credit_utilization_ratio: f64,
-    monthly_fixed_expenses: i64,
-    debt_dependency_ratio: f64,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct DashboardResponse {
-    latest_snapshot: Option<Snapshot>,
-    metrics: DashboardMetrics,
-}
-
-#[derive(Debug, Serialize)]
-struct SnapshotsResponse {
-    snapshots: Vec<Snapshot>,
-}
+// --- Account master types ---
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -182,6 +72,107 @@ struct UpdateAccountMasterInput {
     credit_limit: Option<i64>,
 }
 
+// --- Dashboard types ---
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DashboardAccountRecord {
+    account_id: String,
+    account_name: String,
+    category: String,
+    is_debt: i64,
+    balance: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DashboardAccount {
+    account_id: String,
+    account_name: String,
+    category: String,
+    is_debt: bool,
+    balance: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DashboardResponse {
+    snapshot_date: Option<String>,
+    net_worth: i64,
+    total_assets: i64,
+    total_debt: i64,
+    accounts: Vec<DashboardAccount>,
+}
+
+// --- Snapshot types ---
+
+#[derive(Debug, Deserialize)]
+struct IdRecord {
+    id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SnapshotDateRecord {
+    snapshot_date: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SnapshotRecord {
+    id: String,
+    snapshot_date: String,
+    note: Option<String>,
+    created_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SnapshotBalanceRecord {
+    account_id: String,
+    balance: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SnapshotBalance {
+    account_id: String,
+    balance: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Snapshot {
+    id: String,
+    snapshot_date: String,
+    note: Option<String>,
+    created_at: String,
+    balances: Vec<SnapshotBalance>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SnapshotResponse {
+    snapshot: Option<Snapshot>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct BalanceInput {
+    account_id: String,
+    balance: i64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateSnapshotInput {
+    snapshot_date: String,
+    note: Option<String>,
+    balances: Vec<BalanceInput>,
+}
+
+// --- Error ---
+
 #[derive(Debug, Error)]
 enum ApiError {
     #[error("bad request: {0}")]
@@ -195,6 +186,8 @@ impl From<ApiError> for Error {
         Error::RustError(value.to_string())
     }
 }
+
+// --- Main handler ---
 
 #[event(fetch)]
 async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
@@ -213,6 +206,13 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     }
 
     let response = Router::new()
+        // Dashboard
+        .get_async("/api/dashboard", |_req, ctx| async move {
+            let db = ctx.env.d1("DB")?;
+            let dashboard = load_dashboard(&db).await?;
+            Response::from_json(&dashboard)
+        })
+        // Account masters
         .get_async("/api/accounts", |_req, ctx| async move {
             let db = ctx.env.d1("DB")?;
             let accounts = list_account_masters(&db).await?;
@@ -230,7 +230,7 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         })
         .patch_async("/api/accounts/:id", |mut req, ctx| async move {
             let db = ctx.env.d1("DB")?;
-            let id = ctx.param("id").map(str::to_string)
+            let id = ctx.param("id").map(|s| s.to_string())
                 .ok_or_else(|| ApiError::BadRequest("missing id".into()))?;
             let payload = req
                 .json::<UpdateAccountMasterInput>()
@@ -242,24 +242,18 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         })
         .delete_async("/api/accounts/:id", |_req, ctx| async move {
             let db = ctx.env.d1("DB")?;
-            let id = ctx.param("id").map(str::to_string)
+            let id = ctx.param("id").map(|s| s.to_string())
                 .ok_or_else(|| ApiError::BadRequest("missing id".into()))?;
             archive_account_master(&db, &id).await?;
             Response::empty()
         })
-        .get_async("/api/dashboard", |_req, ctx| async move {
+        // Snapshots
+        .get_async("/api/snapshots/:yearMonth", |_req, ctx| async move {
             let db = ctx.env.d1("DB")?;
-            let snapshot = load_latest_snapshot(&db).await?;
-            let metrics = build_dashboard_metrics(snapshot.as_ref());
-            Response::from_json(&DashboardResponse {
-                latest_snapshot: snapshot,
-                metrics,
-            })
-        })
-        .get_async("/api/snapshots", |_req, ctx| async move {
-            let db = ctx.env.d1("DB")?;
-            let snapshots = load_snapshots(&db).await?;
-            Response::from_json(&SnapshotsResponse { snapshots })
+            let year_month = ctx.param("yearMonth").map(|s| s.to_string())
+                .ok_or_else(|| ApiError::BadRequest("missing yearMonth".into()))?;
+            let snapshot = load_snapshot(&db, &year_month).await?;
+            Response::from_json(&SnapshotResponse { snapshot })
         })
         .post_async("/api/snapshots", |mut req, ctx| async move {
             let db = ctx.env.d1("DB")?;
@@ -267,9 +261,8 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
                 .json::<CreateSnapshotInput>()
                 .await
                 .map_err(|err| ApiError::BadRequest(err.to_string()))?;
-
             validate_snapshot_input(&payload)?;
-            let snapshot = insert_snapshot(&db, payload).await?;
+            let snapshot = upsert_snapshot(&db, payload).await?;
             Response::from_json(&snapshot)
         })
         .run(req, env)
@@ -280,6 +273,8 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         CorsOrigin::NotBrowser | CorsOrigin::Denied => Ok(response),
     }
 }
+
+// --- CORS helpers ---
 
 fn cors_origin(req: &Request, env: &Env) -> Result<CorsOrigin> {
     let Some(origin) = req.headers().get("Origin")? else {
@@ -309,279 +304,10 @@ fn add_cors_headers(response: Response, origin: &str) -> Result<Response> {
     headers.set("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS")?;
     headers.set("Access-Control-Allow-Headers", "Content-Type")?;
     headers.set("Vary", "Origin")?;
-
     Ok(response.with_headers(headers))
 }
 
-fn validate_snapshot_input(input: &CreateSnapshotInput) -> Result<()> {
-    if input.snapshot_date.trim().is_empty() {
-        return Err(ApiError::BadRequest("snapshotDate is required".into()).into());
-    }
-
-    if input.accounts.is_empty() {
-        return Err(ApiError::BadRequest("at least one account is required".into()).into());
-    }
-
-    Ok(())
-}
-
-async fn load_snapshots(db: &D1Database) -> Result<Vec<Snapshot>> {
-    let snapshot_records: Vec<SnapshotRecord> = db
-        .prepare(
-            "SELECT id,
-                    snapshot_date AS snapshotDate,
-                    currency,
-                    note,
-                    created_at AS createdAt
-             FROM snapshots
-             ORDER BY snapshot_date DESC, created_at DESC",
-        )
-        .all()
-        .await
-        .map_err(d1_error)?
-        .results()
-        .map_err(d1_error)?;
-
-    let mut snapshots = Vec::with_capacity(snapshot_records.len());
-
-    for snapshot in snapshot_records {
-        snapshots.push(load_snapshot_by_id(db, &snapshot.id).await?);
-    }
-
-    Ok(snapshots)
-}
-
-async fn load_latest_snapshot(db: &D1Database) -> Result<Option<Snapshot>> {
-    let record = db
-        .prepare(
-            "SELECT id,
-                    snapshot_date AS snapshotDate,
-                    currency,
-                    note,
-                    created_at AS createdAt
-             FROM snapshots
-             ORDER BY snapshot_date DESC, created_at DESC
-             LIMIT 1",
-        )
-        .first::<SnapshotRecord>(None)
-        .await
-        .map_err(d1_error)?;
-
-    match record {
-        Some(record) => Ok(Some(load_snapshot_by_id(db, &record.id).await?)),
-        None => Ok(None),
-    }
-}
-
-async fn load_snapshot_by_id(db: &D1Database, snapshot_id: &str) -> Result<Snapshot> {
-    let record = db
-        .prepare(
-            "SELECT id,
-                    snapshot_date AS snapshotDate,
-                    currency,
-                    note,
-                    created_at AS createdAt
-             FROM snapshots
-             WHERE id = ?1",
-        )
-        .bind(&[snapshot_id.into()])
-        .map_err(d1_error)?
-        .first::<SnapshotRecord>(None)
-        .await
-        .map_err(d1_error)?
-        .ok_or_else(|| ApiError::Database(format!("snapshot not found: {snapshot_id}")))?;
-
-    let accounts: Vec<AccountRecord> = db
-        .prepare(
-            "SELECT id,
-                    snapshot_id AS snapshotId,
-                    name,
-                    account_type AS accountType,
-                    balance,
-                    credit_limit AS creditLimit,
-                    is_debt AS isDebt
-             FROM accounts
-             WHERE snapshot_id = ?1
-             ORDER BY created_at ASC",
-        )
-        .bind(&[snapshot_id.into()])
-        .map_err(d1_error)?
-        .all()
-        .await
-        .map_err(d1_error)?
-        .results()
-        .map_err(d1_error)?;
-
-    let monthly_expenses: Vec<MonthlyExpenseRecord> = db
-        .prepare(
-            "SELECT id,
-                    snapshot_id AS snapshotId,
-                    category,
-                    amount
-             FROM monthly_expenses
-             WHERE snapshot_id = ?1
-             ORDER BY created_at ASC",
-        )
-        .bind(&[snapshot_id.into()])
-        .map_err(d1_error)?
-        .all()
-        .await
-        .map_err(d1_error)?
-        .results()
-        .map_err(d1_error)?;
-
-    Ok(Snapshot {
-        id: record.id,
-        snapshot_date: record.snapshot_date,
-        currency: record.currency,
-        note: record.note,
-        created_at: record.created_at,
-        accounts: accounts
-            .into_iter()
-            .map(|account| Account {
-                id: account.id,
-                snapshot_id: account.snapshot_id,
-                name: account.name,
-                account_type: account.account_type,
-                balance: account.balance,
-                credit_limit: account.credit_limit,
-                is_debt: account.is_debt == 1,
-            })
-            .collect(),
-        monthly_expenses: monthly_expenses
-            .into_iter()
-            .map(|expense| MonthlyExpense {
-                id: expense.id,
-                snapshot_id: expense.snapshot_id,
-                category: expense.category,
-                amount: expense.amount,
-            })
-            .collect(),
-    })
-}
-
-async fn insert_snapshot(db: &D1Database, input: CreateSnapshotInput) -> Result<Snapshot> {
-    let snapshot_id = create_id("snapshot");
-    let created_at = now_iso();
-    let currency = input.currency.unwrap_or_else(|| "JPY".to_string());
-
-    db.prepare(
-        "INSERT INTO snapshots (id, snapshot_date, currency, note, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5)",
-    )
-    .bind(&[
-        snapshot_id.clone().into(),
-        input.snapshot_date.clone().into(),
-        currency.into(),
-        input.note.clone().unwrap_or_default().into(),
-        created_at.clone().into(),
-    ])
-    .map_err(d1_error)?
-    .run()
-    .await
-    .map_err(d1_error)?;
-
-    for (index, account) in input.accounts.iter().enumerate() {
-        let account_id = format!("{snapshot_id}_account_{index}");
-        db.prepare(
-            "INSERT INTO accounts
-             (id, snapshot_id, name, account_type, balance, credit_limit, is_debt, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-        )
-        .bind(&[
-            account_id.into(),
-            snapshot_id.clone().into(),
-            account.name.clone().into(),
-            account.account_type.clone().into(),
-            js_number(account.balance),
-            js_optional_number(account.credit_limit),
-            js_number(if account.is_debt { 1 } else { 0 }),
-            created_at.clone().into(),
-        ])
-        .map_err(d1_error)?
-        .run()
-        .await
-        .map_err(d1_error)?;
-    }
-
-    for (index, expense) in input.monthly_expenses.iter().enumerate() {
-        let expense_id = format!("{snapshot_id}_expense_{index}");
-        db.prepare(
-            "INSERT INTO monthly_expenses
-             (id, snapshot_id, category, amount, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5)",
-        )
-        .bind(&[
-            expense_id.into(),
-            snapshot_id.clone().into(),
-            expense.category.clone().into(),
-            js_number(expense.amount),
-            created_at.clone().into(),
-        ])
-        .map_err(d1_error)?
-        .run()
-        .await
-        .map_err(d1_error)?;
-    }
-
-    load_snapshot_by_id(db, &snapshot_id).await
-}
-
-fn build_dashboard_metrics(snapshot: Option<&Snapshot>) -> DashboardMetrics {
-    let Some(snapshot) = snapshot else {
-        return DashboardMetrics {
-            total_assets: 0,
-            total_debt: 0,
-            net_worth: 0,
-            credit_utilization_ratio: 0.0,
-            monthly_fixed_expenses: 0,
-            debt_dependency_ratio: 0.0,
-        };
-    };
-
-    let total_assets = snapshot
-        .accounts
-        .iter()
-        .filter(|account| !account.is_debt)
-        .map(|account| account.balance)
-        .sum::<i64>();
-
-    let total_debt = snapshot
-        .accounts
-        .iter()
-        .filter(|account| account.is_debt)
-        .map(|account| account.balance)
-        .sum::<i64>();
-
-    let total_credit_limit = snapshot
-        .accounts
-        .iter()
-        .filter_map(|account| account.credit_limit)
-        .sum::<i64>();
-
-    let monthly_fixed_expenses = snapshot
-        .monthly_expenses
-        .iter()
-        .map(|expense| expense.amount)
-        .sum::<i64>();
-
-    DashboardMetrics {
-        total_assets,
-        total_debt,
-        net_worth: total_assets - total_debt,
-        credit_utilization_ratio: if total_credit_limit == 0 {
-            0.0
-        } else {
-            total_debt as f64 / total_credit_limit as f64
-        },
-        monthly_fixed_expenses,
-        debt_dependency_ratio: if total_assets == 0 {
-            0.0
-        } else {
-            total_debt as f64 / total_assets as f64
-        },
-    }
-}
+// --- Account master validation ---
 
 fn validate_create_account_master(input: &CreateAccountMasterInput) -> Result<()> {
     if input.name.trim().is_empty() {
@@ -599,6 +325,8 @@ fn validate_update_account_master(input: &UpdateAccountMasterInput) -> Result<()
     }
     Ok(())
 }
+
+// --- Account master DB ---
 
 fn account_master_from_record(r: AccountMasterRecord) -> AccountMaster {
     AccountMaster {
@@ -723,6 +451,224 @@ async fn archive_account_master(db: &D1Database, id: &str) -> Result<()> {
     Ok(())
 }
 
+// --- Dashboard DB ---
+
+async fn load_dashboard(db: &D1Database) -> Result<DashboardResponse> {
+    let latest = db
+        .prepare("SELECT snapshot_date AS snapshotDate FROM snapshots ORDER BY snapshot_date DESC LIMIT 1")
+        .first::<SnapshotDateRecord>(None)
+        .await
+        .map_err(d1_error)?;
+
+    let Some(latest) = latest else {
+        return Ok(DashboardResponse {
+            snapshot_date: None,
+            net_worth: 0,
+            total_assets: 0,
+            total_debt: 0,
+            accounts: vec![],
+        });
+    };
+
+    let records: Vec<DashboardAccountRecord> = db
+        .prepare(
+            "SELECT sb.account_id AS accountId,
+                    am.name        AS accountName,
+                    am.category,
+                    am.is_debt     AS isDebt,
+                    sb.balance
+             FROM snapshots s
+             JOIN snapshot_balances sb ON sb.snapshot_id = s.id
+             JOIN account_masters am  ON am.id = sb.account_id
+             WHERE s.snapshot_date = ?1
+             ORDER BY am.is_debt ASC, am.display_order ASC, am.created_at ASC",
+        )
+        .bind(&[latest.snapshot_date.clone().into()])
+        .map_err(d1_error)?
+        .all()
+        .await
+        .map_err(d1_error)?
+        .results()
+        .map_err(d1_error)?;
+
+    let total_assets: i64 = records.iter().filter(|a| a.is_debt == 0).map(|a| a.balance).sum();
+    let total_debt: i64 = records.iter().filter(|a| a.is_debt == 1).map(|a| a.balance).sum();
+
+    Ok(DashboardResponse {
+        snapshot_date: Some(latest.snapshot_date),
+        net_worth: total_assets - total_debt,
+        total_assets,
+        total_debt,
+        accounts: records
+            .into_iter()
+            .map(|r| DashboardAccount {
+                account_id: r.account_id,
+                account_name: r.account_name,
+                category: r.category,
+                is_debt: r.is_debt == 1,
+                balance: r.balance,
+            })
+            .collect(),
+    })
+}
+
+// --- Snapshot validation ---
+
+fn validate_snapshot_input(input: &CreateSnapshotInput) -> Result<()> {
+    if !is_valid_year_month(&input.snapshot_date) {
+        return Err(ApiError::BadRequest("snapshotDate must be YYYY-MM format".into()).into());
+    }
+    Ok(())
+}
+
+fn is_valid_year_month(s: &str) -> bool {
+    let parts: Vec<&str> = s.splitn(2, '-').collect();
+    if parts.len() != 2 {
+        return false;
+    }
+    let year_ok = parts[0].len() == 4 && parts[0].chars().all(|c| c.is_ascii_digit());
+    let month_ok = parts[1].len() == 2
+        && parts[1].chars().all(|c| c.is_ascii_digit())
+        && matches!(parts[1], "01"|"02"|"03"|"04"|"05"|"06"|"07"|"08"|"09"|"10"|"11"|"12");
+    year_ok && month_ok
+}
+
+// --- Snapshot DB ---
+
+async fn load_snapshot(db: &D1Database, year_month: &str) -> Result<Option<Snapshot>> {
+    let record = db
+        .prepare(
+            "SELECT id,
+                    snapshot_date AS snapshotDate,
+                    note,
+                    created_at    AS createdAt
+             FROM snapshots
+             WHERE snapshot_date = ?1",
+        )
+        .bind(&[year_month.into()])
+        .map_err(d1_error)?
+        .first::<SnapshotRecord>(None)
+        .await
+        .map_err(d1_error)?;
+
+    match record {
+        None => Ok(None),
+        Some(r) => {
+            let balances = load_snapshot_balances(db, &r.id).await?;
+            Ok(Some(Snapshot {
+                id: r.id,
+                snapshot_date: r.snapshot_date,
+                note: r.note,
+                created_at: r.created_at,
+                balances,
+            }))
+        }
+    }
+}
+
+async fn load_snapshot_balances(db: &D1Database, snapshot_id: &str) -> Result<Vec<SnapshotBalance>> {
+    let records: Vec<SnapshotBalanceRecord> = db
+        .prepare(
+            "SELECT account_id AS accountId, balance
+             FROM snapshot_balances
+             WHERE snapshot_id = ?1",
+        )
+        .bind(&[snapshot_id.into()])
+        .map_err(d1_error)?
+        .all()
+        .await
+        .map_err(d1_error)?
+        .results()
+        .map_err(d1_error)?;
+
+    Ok(records
+        .into_iter()
+        .map(|r| SnapshotBalance { account_id: r.account_id, balance: r.balance })
+        .collect())
+}
+
+async fn upsert_snapshot(db: &D1Database, input: CreateSnapshotInput) -> Result<Snapshot> {
+    let created_at = now_iso();
+
+    let existing_id = db
+        .prepare("SELECT id FROM snapshots WHERE snapshot_date = ?1")
+        .bind(&[input.snapshot_date.clone().into()])
+        .map_err(d1_error)?
+        .first::<IdRecord>(None)
+        .await
+        .map_err(d1_error)?
+        .map(|r| r.id);
+
+    let snapshot_id = match existing_id {
+        Some(id) => {
+            db.prepare(
+                "UPDATE snapshots SET note = ?1, created_at = ?2 WHERE id = ?3",
+            )
+            .bind(&[
+                js_optional_str(input.note.as_deref()),
+                created_at.clone().into(),
+                id.clone().into(),
+            ])
+            .map_err(d1_error)?
+            .run()
+            .await
+            .map_err(d1_error)?;
+
+            db.prepare("DELETE FROM snapshot_balances WHERE snapshot_id = ?1")
+                .bind(&[id.clone().into()])
+                .map_err(d1_error)?
+                .run()
+                .await
+                .map_err(d1_error)?;
+
+            id
+        }
+        None => {
+            let id = create_id("snap");
+            db.prepare(
+                "INSERT INTO snapshots (id, snapshot_date, note, created_at)
+                 VALUES (?1, ?2, ?3, ?4)",
+            )
+            .bind(&[
+                id.clone().into(),
+                input.snapshot_date.clone().into(),
+                js_optional_str(input.note.as_deref()),
+                created_at.clone().into(),
+            ])
+            .map_err(d1_error)?
+            .run()
+            .await
+            .map_err(d1_error)?;
+            id
+        }
+    };
+
+    for (i, bal) in input.balances.iter().enumerate() {
+        let bal_id = format!("{snapshot_id}_b{i}");
+        db.prepare(
+            "INSERT INTO snapshot_balances (id, snapshot_id, account_id, balance, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+        )
+        .bind(&[
+            bal_id.into(),
+            snapshot_id.clone().into(),
+            bal.account_id.clone().into(),
+            js_number(bal.balance),
+            created_at.clone().into(),
+        ])
+        .map_err(d1_error)?
+        .run()
+        .await
+        .map_err(d1_error)?;
+    }
+
+    load_snapshot(db, &input.snapshot_date)
+        .await?
+        .ok_or_else(|| ApiError::Database("snapshot not found after upsert".into()).into())
+}
+
+// --- Utilities ---
+
 fn d1_error(error: impl std::fmt::Display) -> Error {
     ApiError::Database(error.to_string()).into()
 }
@@ -741,4 +687,11 @@ fn js_number(value: i64) -> JsValue {
 
 fn js_optional_number(value: Option<i64>) -> JsValue {
     value.map(js_number).unwrap_or(JsValue::NULL)
+}
+
+fn js_optional_str(value: Option<&str>) -> JsValue {
+    match value {
+        Some(s) if !s.trim().is_empty() => s.to_string().into(),
+        _ => JsValue::NULL,
+    }
 }

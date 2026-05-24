@@ -6,7 +6,7 @@ compatibility_date = "2026-05-12"
 command = "cargo install -q worker-build && worker-build --release"
 
 [vars]
-ALLOWED_ORIGINS = "https://money-pilot-bx3.pages.dev,https://master.money-pilot-bx3.pages.dev,https://2062b7fd.money-pilot-bx3.pages.dev"
+ALLOWED_ORIGINS = "http://localhost:5174,https://money-pilot-bx3.pages.dev,https://master.money-pilot-bx3.pages.dev,https://2062b7fd.money-pilot-bx3.pages.dev"
 
 [[d1_databases]]
 binding = "DB"
