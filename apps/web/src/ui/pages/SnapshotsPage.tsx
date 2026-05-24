@@ -33,6 +33,41 @@ const accountTypeOptions: { value: AccountType; label: string }[] = [
   { value: "Other", label: "その他" },
 ];
 
+function collectBankAccountNames(
+  snapshots: Awaited<ReturnType<typeof fetchSnapshots>>["snapshots"] | undefined,
+  accounts: AccountFormRow[],
+) {
+  const names = new Set<string>();
+
+  for (const snapshot of snapshots ?? []) {
+    for (const account of snapshot.accounts) {
+      if (account.accountType !== "Bank") {
+        continue;
+      }
+
+      const name = account.name.trim();
+
+      if (name !== "") {
+        names.add(name);
+      }
+    }
+  }
+
+  for (const account of accounts) {
+    if (account.accountType !== "Bank") {
+      continue;
+    }
+
+    const name = account.name.trim();
+
+    if (name !== "") {
+      names.add(name);
+    }
+  }
+
+  return Array.from(names);
+}
+
 function createEmptyAccount(): AccountFormRow {
   return {
     name: "",
@@ -74,6 +109,7 @@ export function SnapshotsPage() {
     queryKey: ["snapshots"],
     queryFn: fetchSnapshots,
   });
+  const bankAccountOptions = collectBankAccountNames(data?.snapshots, accounts);
 
   const mutation = useMutation({
     mutationFn: (payload: {
@@ -111,6 +147,30 @@ export function SnapshotsPage() {
       current.map((account, accountIndex) =>
         accountIndex === index ? { ...account, [field]: value } : account,
       ),
+    );
+  };
+
+  const handleAccountTypeChange = (index: number, accountType: AccountType) => {
+    setAccounts((current) =>
+      current.map((account, accountIndex) => {
+        if (accountIndex !== index) {
+          return account;
+        }
+
+        if (accountType !== "Bank") {
+          return { ...account, accountType };
+        }
+
+        const nextName = bankAccountOptions.includes(account.name.trim())
+          ? account.name
+          : (bankAccountOptions[0] ?? "");
+
+        return {
+          ...account,
+          accountType,
+          name: nextName,
+        };
+      }),
     );
   };
 
@@ -205,14 +265,33 @@ export function SnapshotsPage() {
             <div className="form-stack">
               {accounts.map((account, index) => (
                 <div className="entry-card" key={`account-${index}`}>
+                  {account.accountType === "Bank" && bankAccountOptions.length > 0 ? (
+                    <p className="muted">銀行口座は登録済みの候補から選択します。</p>
+                  ) : null}
+
                   <div className="form-grid">
                     <label className="field">
                       <span>口座名</span>
-                      <input
-                        value={account.name}
-                        onChange={(event) => handleAccountChange(index, "name", event.target.value)}
-                        required={index === 0}
-                      />
+                      {account.accountType === "Bank" && bankAccountOptions.length > 0 ? (
+                        <select
+                          value={account.name}
+                          onChange={(event) => handleAccountChange(index, "name", event.target.value)}
+                          required={index === 0}
+                        >
+                          <option value="">銀行口座を選択</option>
+                          {bankAccountOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          value={account.name}
+                          onChange={(event) => handleAccountChange(index, "name", event.target.value)}
+                          required={index === 0}
+                        />
+                      )}
                     </label>
 
                     <label className="field">
@@ -220,7 +299,7 @@ export function SnapshotsPage() {
                       <select
                         value={account.accountType}
                         onChange={(event) =>
-                          handleAccountChange(index, "accountType", event.target.value as AccountType)
+                          handleAccountTypeChange(index, event.target.value as AccountType)
                         }
                       >
                         {accountTypeOptions.map((option) => (

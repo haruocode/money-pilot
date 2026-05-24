@@ -4,6 +4,14 @@ use thiserror::Error;
 use worker::*;
 use worker::wasm_bindgen::JsValue;
 
+const ALLOWED_ORIGINS_VAR: &str = "ALLOWED_ORIGINS";
+
+enum CorsOrigin {
+    NotBrowser,
+    Allowed(String),
+    Denied,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct SnapshotRecord {
@@ -134,7 +142,21 @@ impl From<ApiError> for Error {
 
 #[event(fetch)]
 async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
-    Router::new()
+    let cors_origin = cors_origin(&req, &env)?;
+
+    if req.method() == Method::Options {
+        return match cors_origin {
+            CorsOrigin::Allowed(origin) => add_cors_headers(Response::empty()?, &origin),
+            CorsOrigin::NotBrowser => Response::empty(),
+            CorsOrigin::Denied => Response::error("CORS origin is not allowed", 403),
+        };
+    }
+
+    if matches!(cors_origin, CorsOrigin::Denied) {
+        return Response::error("CORS origin is not allowed", 403);
+    }
+
+    let response = Router::new()
         .get_async("/api/dashboard", |_req, ctx| async move {
             let db = ctx.env.d1("DB")?;
             let snapshot = load_latest_snapshot(&db).await?;
@@ -161,7 +183,44 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             Response::from_json(&snapshot)
         })
         .run(req, env)
-        .await
+        .await?;
+
+    match cors_origin {
+        CorsOrigin::Allowed(origin) => add_cors_headers(response, &origin),
+        CorsOrigin::NotBrowser | CorsOrigin::Denied => Ok(response),
+    }
+}
+
+fn cors_origin(req: &Request, env: &Env) -> Result<CorsOrigin> {
+    let Some(origin) = req.headers().get("Origin")? else {
+        return Ok(CorsOrigin::NotBrowser);
+    };
+
+    let Ok(allowed_origins) = env.var(ALLOWED_ORIGINS_VAR) else {
+        return Ok(CorsOrigin::Denied);
+    };
+
+    let is_allowed = allowed_origins
+        .to_string()
+        .split(',')
+        .map(str::trim)
+        .any(|allowed| allowed == origin);
+
+    if is_allowed {
+        Ok(CorsOrigin::Allowed(origin))
+    } else {
+        Ok(CorsOrigin::Denied)
+    }
+}
+
+fn add_cors_headers(response: Response, origin: &str) -> Result<Response> {
+    let headers = response.headers().clone();
+    headers.set("Access-Control-Allow-Origin", origin)?;
+    headers.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS")?;
+    headers.set("Access-Control-Allow-Headers", "Content-Type")?;
+    headers.set("Vary", "Origin")?;
+
+    Ok(response.with_headers(headers))
 }
 
 fn validate_snapshot_input(input: &CreateSnapshotInput) -> Result<()> {

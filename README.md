@@ -104,7 +104,7 @@ npx wrangler d1 create money_pilot
 本番データベースへマイグレーションを流します。
 
 ```bash
-npx wrangler d1 migrations apply money_pilot
+npm run d1:migrate
 ```
 
 ### 3. API を本番デプロイ
@@ -112,7 +112,7 @@ npx wrangler d1 migrations apply money_pilot
 `apps/api` の Worker を Cloudflare Workers へデプロイします。
 
 ```bash
-npx wrangler deploy --config apps/api/wrangler.toml
+npm run deploy:api
 ```
 
 デプロイ後、`https://<worker-name>.<subdomain>.workers.dev` のような URL が払い出されます。
@@ -123,6 +123,13 @@ Cloudflare Pages 側では以下を設定します。
 
 - Build command: `npm run build:web`
 - Build output directory: `apps/web/dist`
+
+CLI から直接デプロイする場合は、API URL を埋め込んでから Pages へアップロードします。
+
+```bash
+VITE_API_BASE_URL=https://money-pilot-api.takaron0930.workers.dev npm run build:web
+npx wrangler pages deploy apps/web/dist --project-name money-pilot
+```
 
 ### 5. `VITE_API_BASE_URL` を設定
 
@@ -138,7 +145,12 @@ VITE_API_BASE_URL=https://<worker-name>.<subdomain>.workers.dev
 
 ### 6. CORS が必要なら API 側で許可
 
-Web を Pages ドメイン、API を `workers.dev` ドメインで別配信する場合、API 側で CORS 設定が必要です。まだこのリポジトリには CORS 対応が入っていないため、別ドメイン構成で公開する場合は API 側のレスポンスヘッダー追加が必要です。
+Web を Pages ドメイン、API を `workers.dev` ドメインで別配信する場合、API 側で CORS 設定が必要です。このリポジトリでは `ALLOWED_ORIGINS` に指定した Origin だけを許可します。
+
+```toml
+[vars]
+ALLOWED_ORIGINS = "https://money-pilot-bx3.pages.dev"
+```
 
 同一ドメイン配下で `/api` を Worker にルーティングする構成にする場合は、`VITE_API_BASE_URL` を未設定のまま使えます。
 

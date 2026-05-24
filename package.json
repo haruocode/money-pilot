@@ -9,7 +9,8 @@
     "dev:web": "npm --workspace @money-pilot/web run dev",
     "dev:api": "npm --workspace @money-pilot/api run dev",
     "build:web": "npm --workspace @money-pilot/web run build",
-    "build:api": "npm --workspace @money-pilot/api run build"
+    "build:api": "npm --workspace @money-pilot/api run build",
+    "deploy:api": "npm --workspace @money-pilot/api run deploy --",
+    "d1:migrate": "npm --workspace @money-pilot/api run d1:migrate --"
   }
 }
-

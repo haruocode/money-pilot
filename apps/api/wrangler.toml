@@ -5,8 +5,11 @@ compatibility_date = "2026-05-12"
 [build]
 command = "cargo install -q worker-build && worker-build --release"
 
+[vars]
+ALLOWED_ORIGINS = "https://money-pilot-bx3.pages.dev,https://master.money-pilot-bx3.pages.dev,https://2062b7fd.money-pilot-bx3.pages.dev"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "money_pilot"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "0ebfde1e-3ae0-4d16-9e3e-4508cec65a45"
 migrations_dir = "../../db/migrations"
