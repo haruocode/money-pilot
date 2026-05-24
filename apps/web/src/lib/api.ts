@@ -1,11 +1,19 @@
 import {
+  accountMasterSchema,
+  accountMastersResponseSchema,
+  createAccountMasterInputSchema,
   createSnapshotInputSchema,
   dashboardResponseSchema,
   snapshotSchema,
   snapshotsResponseSchema,
+  updateAccountMasterInputSchema,
+  type AccountMaster,
+  type AccountMastersResponse,
+  type CreateAccountMasterInput,
   type CreateSnapshotInput,
   type DashboardResponse,
   type SnapshotsResponse,
+  type UpdateAccountMasterInput,
 } from "@money-pilot/shared";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "";
@@ -38,6 +46,42 @@ export async function fetchDashboard(): Promise<DashboardResponse> {
 export async function fetchSnapshots(): Promise<SnapshotsResponse> {
   const json = await readJson<unknown>(await fetch(buildApiUrl("/api/snapshots")));
   return snapshotsResponseSchema.parse(json);
+}
+
+export async function fetchAccounts(): Promise<AccountMastersResponse> {
+  const json = await readJson<unknown>(await fetch(buildApiUrl("/api/accounts")));
+  return accountMastersResponseSchema.parse(json);
+}
+
+export async function createAccount(input: CreateAccountMasterInput): Promise<AccountMaster> {
+  const payload = createAccountMasterInputSchema.parse(input);
+  const json = await readJson<unknown>(
+    await fetch(buildApiUrl("/api/accounts"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  );
+  return accountMasterSchema.parse(json);
+}
+
+export async function updateAccount(id: string, input: UpdateAccountMasterInput): Promise<AccountMaster> {
+  const payload = updateAccountMasterInputSchema.parse(input);
+  const json = await readJson<unknown>(
+    await fetch(buildApiUrl(`/api/accounts/${id}`), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  );
+  return accountMasterSchema.parse(json);
+}
+
+export async function archiveAccount(id: string): Promise<void> {
+  const response = await fetch(buildApiUrl(`/api/accounts/${id}`), { method: "DELETE" });
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`);
+  }
 }
 
 export async function createSnapshot(input: CreateSnapshotInput) {

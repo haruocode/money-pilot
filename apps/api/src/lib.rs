@@ -6,6 +6,15 @@ use worker::wasm_bindgen::JsValue;
 
 const ALLOWED_ORIGINS_VAR: &str = "ALLOWED_ORIGINS";
 
+const VALID_CATEGORIES: &[&str] = &[
+    "Bank", "CreditCard", "CardLoan", "ConsumerLoan",
+    "Investment", "Crypto", "Cash", "Other",
+];
+
+fn is_debt_from_category(category: &str) -> bool {
+    matches!(category, "CreditCard" | "CardLoan" | "ConsumerLoan")
+}
+
 enum CorsOrigin {
     NotBrowser,
     Allowed(String),
@@ -126,6 +135,53 @@ struct SnapshotsResponse {
     snapshots: Vec<Snapshot>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct AccountMasterRecord {
+    id: String,
+    name: String,
+    category: String,
+    is_debt: i64,
+    credit_limit: Option<i64>,
+    display_order: i64,
+    is_archived: i64,
+    created_at: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct AccountMaster {
+    id: String,
+    name: String,
+    category: String,
+    is_debt: bool,
+    credit_limit: Option<i64>,
+    display_order: i64,
+    is_archived: bool,
+    created_at: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AccountMastersResponse {
+    accounts: Vec<AccountMaster>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateAccountMasterInput {
+    name: String,
+    category: String,
+    credit_limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateAccountMasterInput {
+    name: String,
+    credit_limit: Option<i64>,
+}
+
 #[derive(Debug, Error)]
 enum ApiError {
     #[error("bad request: {0}")]
@@ -157,6 +213,40 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     }
 
     let response = Router::new()
+        .get_async("/api/accounts", |_req, ctx| async move {
+            let db = ctx.env.d1("DB")?;
+            let accounts = list_account_masters(&db).await?;
+            Response::from_json(&AccountMastersResponse { accounts })
+        })
+        .post_async("/api/accounts", |mut req, ctx| async move {
+            let db = ctx.env.d1("DB")?;
+            let payload = req
+                .json::<CreateAccountMasterInput>()
+                .await
+                .map_err(|err| ApiError::BadRequest(err.to_string()))?;
+            validate_create_account_master(&payload)?;
+            let account = insert_account_master(&db, payload).await?;
+            Response::from_json(&account)
+        })
+        .patch_async("/api/accounts/:id", |mut req, ctx| async move {
+            let db = ctx.env.d1("DB")?;
+            let id = ctx.param("id").map(str::to_string)
+                .ok_or_else(|| ApiError::BadRequest("missing id".into()))?;
+            let payload = req
+                .json::<UpdateAccountMasterInput>()
+                .await
+                .map_err(|err| ApiError::BadRequest(err.to_string()))?;
+            validate_update_account_master(&payload)?;
+            let account = update_account_master(&db, &id, payload).await?;
+            Response::from_json(&account)
+        })
+        .delete_async("/api/accounts/:id", |_req, ctx| async move {
+            let db = ctx.env.d1("DB")?;
+            let id = ctx.param("id").map(str::to_string)
+                .ok_or_else(|| ApiError::BadRequest("missing id".into()))?;
+            archive_account_master(&db, &id).await?;
+            Response::empty()
+        })
         .get_async("/api/dashboard", |_req, ctx| async move {
             let db = ctx.env.d1("DB")?;
             let snapshot = load_latest_snapshot(&db).await?;
@@ -216,7 +306,7 @@ fn cors_origin(req: &Request, env: &Env) -> Result<CorsOrigin> {
 fn add_cors_headers(response: Response, origin: &str) -> Result<Response> {
     let headers = response.headers().clone();
     headers.set("Access-Control-Allow-Origin", origin)?;
-    headers.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS")?;
+    headers.set("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS")?;
     headers.set("Access-Control-Allow-Headers", "Content-Type")?;
     headers.set("Vary", "Origin")?;
 
@@ -491,6 +581,146 @@ fn build_dashboard_metrics(snapshot: Option<&Snapshot>) -> DashboardMetrics {
             total_debt as f64 / total_assets as f64
         },
     }
+}
+
+fn validate_create_account_master(input: &CreateAccountMasterInput) -> Result<()> {
+    if input.name.trim().is_empty() {
+        return Err(ApiError::BadRequest("name is required".into()).into());
+    }
+    if !VALID_CATEGORIES.contains(&input.category.as_str()) {
+        return Err(ApiError::BadRequest(format!("invalid category: {}", input.category)).into());
+    }
+    Ok(())
+}
+
+fn validate_update_account_master(input: &UpdateAccountMasterInput) -> Result<()> {
+    if input.name.trim().is_empty() {
+        return Err(ApiError::BadRequest("name is required".into()).into());
+    }
+    Ok(())
+}
+
+fn account_master_from_record(r: AccountMasterRecord) -> AccountMaster {
+    AccountMaster {
+        id: r.id,
+        name: r.name,
+        category: r.category,
+        is_debt: r.is_debt == 1,
+        credit_limit: r.credit_limit,
+        display_order: r.display_order,
+        is_archived: r.is_archived == 1,
+        created_at: r.created_at,
+    }
+}
+
+async fn list_account_masters(db: &D1Database) -> Result<Vec<AccountMaster>> {
+    let records: Vec<AccountMasterRecord> = db
+        .prepare(
+            "SELECT id,
+                    name,
+                    category,
+                    is_debt       AS isDebt,
+                    credit_limit  AS creditLimit,
+                    display_order AS displayOrder,
+                    is_archived   AS isArchived,
+                    created_at    AS createdAt
+             FROM account_masters
+             WHERE is_archived = 0
+             ORDER BY display_order ASC, created_at ASC",
+        )
+        .all()
+        .await
+        .map_err(d1_error)?
+        .results()
+        .map_err(d1_error)?;
+
+    Ok(records.into_iter().map(account_master_from_record).collect())
+}
+
+async fn load_account_master_by_id(db: &D1Database, id: &str) -> Result<AccountMaster> {
+    let record = db
+        .prepare(
+            "SELECT id,
+                    name,
+                    category,
+                    is_debt       AS isDebt,
+                    credit_limit  AS creditLimit,
+                    display_order AS displayOrder,
+                    is_archived   AS isArchived,
+                    created_at    AS createdAt
+             FROM account_masters
+             WHERE id = ?1",
+        )
+        .bind(&[id.into()])
+        .map_err(d1_error)?
+        .first::<AccountMasterRecord>(None)
+        .await
+        .map_err(d1_error)?
+        .ok_or_else(|| ApiError::Database(format!("account not found: {id}")))?;
+
+    Ok(account_master_from_record(record))
+}
+
+async fn insert_account_master(
+    db: &D1Database,
+    input: CreateAccountMasterInput,
+) -> Result<AccountMaster> {
+    let id = create_id("acct");
+    let created_at = now_iso();
+    let is_debt = if is_debt_from_category(&input.category) { 1i64 } else { 0i64 };
+
+    db.prepare(
+        "INSERT INTO account_masters
+         (id, name, category, is_debt, credit_limit, display_order, is_archived, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, 0, 0, ?6)",
+    )
+    .bind(&[
+        id.clone().into(),
+        input.name.trim().to_string().into(),
+        input.category.clone().into(),
+        js_number(is_debt),
+        js_optional_number(input.credit_limit),
+        created_at.into(),
+    ])
+    .map_err(d1_error)?
+    .run()
+    .await
+    .map_err(d1_error)?;
+
+    load_account_master_by_id(db, &id).await
+}
+
+async fn update_account_master(
+    db: &D1Database,
+    id: &str,
+    input: UpdateAccountMasterInput,
+) -> Result<AccountMaster> {
+    db.prepare(
+        "UPDATE account_masters
+         SET name = ?1, credit_limit = ?2
+         WHERE id = ?3 AND is_archived = 0",
+    )
+    .bind(&[
+        input.name.trim().to_string().into(),
+        js_optional_number(input.credit_limit),
+        id.into(),
+    ])
+    .map_err(d1_error)?
+    .run()
+    .await
+    .map_err(d1_error)?;
+
+    load_account_master_by_id(db, id).await
+}
+
+async fn archive_account_master(db: &D1Database, id: &str) -> Result<()> {
+    db.prepare("UPDATE account_masters SET is_archived = 1 WHERE id = ?1")
+        .bind(&[id.into()])
+        .map_err(d1_error)?
+        .run()
+        .await
+        .map_err(d1_error)?;
+    Ok(())
 }
 
 fn d1_error(error: impl std::fmt::Display) -> Error {

@@ -1,5 +1,52 @@
 import { z } from "zod";
 
+// --- Account Master (permanent account registry) ---
+
+export const accountCategorySchema = z.enum([
+  "Bank",
+  "CreditCard",
+  "CardLoan",
+  "ConsumerLoan",
+  "Investment",
+  "Crypto",
+  "Cash",
+  "Other",
+]);
+
+export const accountMasterSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: accountCategorySchema,
+  isDebt: z.boolean(),
+  creditLimit: z.number().int().nullable(),
+  displayOrder: z.number().int(),
+  isArchived: z.boolean(),
+  createdAt: z.string(),
+});
+
+export const createAccountMasterInputSchema = z.object({
+  name: z.string().trim().min(1),
+  category: accountCategorySchema,
+  creditLimit: z.number().int().positive().nullable().optional(),
+});
+
+export const updateAccountMasterInputSchema = z.object({
+  name: z.string().trim().min(1),
+  creditLimit: z.number().int().positive().nullable().optional(),
+});
+
+export const accountMastersResponseSchema = z.object({
+  accounts: z.array(accountMasterSchema),
+});
+
+export type AccountCategory = z.infer<typeof accountCategorySchema>;
+export type AccountMaster = z.infer<typeof accountMasterSchema>;
+export type CreateAccountMasterInput = z.infer<typeof createAccountMasterInputSchema>;
+export type UpdateAccountMasterInput = z.infer<typeof updateAccountMasterInputSchema>;
+export type AccountMastersResponse = z.infer<typeof accountMastersResponseSchema>;
+
+// --- Snapshot (legacy, snapshot-scoped accounts) ---
+
 export const accountTypeSchema = z.enum([
   "Bank",
   "CreditCard",
