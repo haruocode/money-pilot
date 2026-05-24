@@ -11,6 +11,7 @@
     "build:web": "npm --workspace @money-pilot/web run build",
     "build:api": "npm --workspace @money-pilot/api run build",
     "deploy:api": "npm --workspace @money-pilot/api run deploy --",
+    "deploy:web": "VITE_API_BASE_URL=https://money-pilot-api.takaron0930.workers.dev npm run build:web && wrangler pages deploy apps/web/dist --project-name money-pilot --branch main",
     "d1:migrate": "npm --workspace @money-pilot/api run d1:migrate --"
   }
 }
